@@ -34,6 +34,7 @@ import (
 
 var (
 	ipmiDCMICurrentPowerRegex         = regexp.MustCompile(`^Current Power\s*:\s*(?P<value>[0-9.]*)\s*Watts.*`)
+	ipmiDCMIPowerMeasurementRegex     = regexp.MustCompile(`^Power Measurement\s*:\s(?P<value>.*)`)
 	ipmiChassisPowerRegex             = regexp.MustCompile(`^System Power\s*:\s(?P<value>.*)`)
 	ipmiSELEntriesRegex               = regexp.MustCompile(`^Number of log entries\s*:\s(?P<value>[0-9.]*)`)
 	ipmiSELFreeSpaceRegex             = regexp.MustCompile(`^Free space remaining\s*:\s(?P<value>[0-9.]*)\s*bytes.*`)
@@ -203,6 +204,20 @@ func GetCurrentPowerConsumption(ipmiOutput Result) (float64, error) {
 		return -1, err
 	}
 	return strconv.ParseFloat(value, 64)
+}
+
+func GetPowerMeasurementState(ipmiOutput Result) (float64, error) {
+	if ipmiOutput.err != nil {
+		return -1, fmt.Errorf("%s: %s", ipmiOutput.err, ipmiOutput.output)
+	}
+	value, err := getValue(ipmiOutput.output, ipmiDCMIPowerMeasurementRegex)
+	if err != nil {
+		return -1, err
+	}
+	if value == "Active" {
+		return 1, err
+	}
+	return 0, err
 }
 
 func GetChassisPowerState(ipmiOutput Result) (float64, error) {

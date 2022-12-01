@@ -31,6 +31,13 @@ var (
 		[]string{},
 		nil,
 	)
+
+	powerMeasurementDesc = prometheus.NewDesc(
+		prometheus.BuildFQName(namespace, "dcmi", "power_measurement_state"),
+		"Current power measurement state, '1' was support, '0' otherwise.",
+		[]string{},
+		nil,
+	)
 )
 
 type DCMICollector struct{}
@@ -53,10 +60,20 @@ func (c DCMICollector) Collect(result freeipmi.Result, ch chan<- prometheus.Metr
 		level.Error(logger).Log("msg", "Failed to collect DCMI data", "target", targetName(target.host), "error", err)
 		return 0, err
 	}
+	currentPowerMeasurementState, err := freeipmi.GetPowerMeasurementState(result)
+	if err != nil {
+		level.Error(logger).Log("msg", "Failed to collect DCMI data", "target", targetName(target.host), "error", err)
+		return 0, err
+	}
 	ch <- prometheus.MustNewConstMetric(
 		powerConsumptionDesc,
 		prometheus.GaugeValue,
 		currentPowerConsumption,
+	)
+	ch <- prometheus.MustNewConstMetric(
+		powerMeasurementDesc,
+		prometheus.GaugeValue,
+		currentPowerMeasurementState,
 	)
 	return 1, nil
 }
